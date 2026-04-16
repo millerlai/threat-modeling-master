@@ -37,6 +37,7 @@ threat-modeling-master/
 **使用者層級安裝**（所有專案都能用此 skill）：
 
 ```sh
+chmod +x ./install.sh
 ./install.sh
 # 或顯式指定
 ./install.sh --user
@@ -89,6 +90,7 @@ cp -r .claude/skills/threat-modeling /path/to/project/.claude/skills/
 
 ```sh
 # 驗證使用者層級安裝
+chmod +x ./verify_install.sh
 ./verify_install.sh
 
 # 驗證專案層級安裝
