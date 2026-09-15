@@ -1,114 +1,119 @@
 # Threat Modeling Skill for Claude Code
 
-一個 Claude Code skill，用於自動分析專案原始碼並產生專業的 **Threat Modeling Report**。方法論採用業界標準：**STRIDE** / **DREAD** / **MITRE ATT&CK** / **Attack Tree**。
+English | [繁體中文](README.zh-TW.md)
 
-支援兩種執行模式：
+A Claude Code skill that analyzes a project's source code and generates a professional **Threat Modeling Report** using industry-standard methodologies: **STRIDE** / **DREAD** / **MITRE ATT&CK** / **Attack Tree**.
 
-| 模式 | 輸入 | 輸出 |
+Two modes are supported:
+
+| Mode | Input | Output |
 |---|---|---|
-| **Full** | 整個專案 codebase | `Threat-Modeling-Report.md`（完整基準報告） |
-| **Patch** | 指定 git 時間區間 | `Threat-Modeling-Report-patch.md`（增量分析，可選擇合併回主報告） |
+| **Full** | The whole project codebase | `Threat-Modeling-Report.md` (complete baseline report) |
+| **Patch** | A git time range | `Threat-Modeling-Report-patch.md` (incremental analysis, optionally merged back into the main report) |
+
+The report is written in the language you ask in. See [Report language](#report-language).
 
 ---
 
-## 專案結構
+## Project structure
 
 ```
 threat-modeling-master/
-├── README.md                                         # 本檔案
-├── install.sh                                        # 一鍵安裝腳本
-├── verify_install.sh                                 # 安裝驗證腳本
-├── threat_modeling_report_template.md                # 報告範本（權威版）
+├── README.md                                         # This file (English)
+├── README.zh-TW.md                                   # Traditional Chinese README
+├── install.sh                                        # One-step install script
+├── verify_install.sh                                 # Installation check script
+├── threat_modeling_report_template.md                # Report template (authoritative copy)
 └── .claude/
     └── skills/
         └── threat-modeling/
-            ├── SKILL.md                              # Skill 定義與執行指引
-            └── threat_modeling_report_template.md    # 範本副本（skill 自包含）
+            ├── SKILL.md                              # Skill definition and instructions
+            └── threat_modeling_report_template.md    # Template copy (keeps the skill self-contained)
 ```
 
-其中 `.claude/skills/threat-modeling/` 整個目錄就是這個 skill 的完整內容，安裝腳本會把它複製到 Claude Code 的 skills 目錄。
+The `.claude/skills/threat-modeling/` directory is the entire skill. The install script copies it into Claude Code's skills directory.
 
 ---
 
-## 安裝
+## Installation
 
-### 方法一：使用 `install.sh`（推薦）
+### Option 1: `install.sh` (recommended)
 
-**使用者層級安裝**（所有專案都能用此 skill）：
+**User-level install** (the skill is available in every project):
 
 ```sh
 chmod +x ./install.sh
 ./install.sh
-# 或顯式指定
+# or explicitly
 ./install.sh --user
 ```
 
-會把 skill 安裝到 `~/.claude/skills/threat-modeling/`。
+This installs the skill to `~/.claude/skills/threat-modeling/`.
 
-**專案層級安裝**（只在某個特定專案中啟用）：
+**Project-level install** (enabled for one project only):
 
 ```sh
 ./install.sh --project /path/to/your/project
 ```
 
-會把 skill 安裝到 `<project>/.claude/skills/threat-modeling/`。
+This installs the skill to `<project>/.claude/skills/threat-modeling/`.
 
-**重新安裝 / 覆蓋既有版本**：
+**Reinstall / overwrite an existing install**:
 
 ```sh
 ./install.sh --force
 ./install.sh --project /path/to/your/project --force
 ```
 
-**查看說明**：
+**Help**:
 
 ```sh
 ./install.sh --help
 ```
 
-> **Windows 使用者**：請在 Git Bash 或 WSL 中執行這些腳本。不要用 CMD 或 PowerShell。
+> **Windows users**: run these scripts in Git Bash or WSL, not CMD or PowerShell.
 
-### 方法二：手動安裝
+### Option 2: Manual install
 
-若不想跑腳本也可以直接複製：
+If you'd rather not run the script, copy the directory yourself:
 
 ```sh
-# 使用者層級
+# User level
 mkdir -p ~/.claude/skills
 cp -r .claude/skills/threat-modeling ~/.claude/skills/
 
-# 專案層級
+# Project level
 mkdir -p /path/to/project/.claude/skills
 cp -r .claude/skills/threat-modeling /path/to/project/.claude/skills/
 ```
 
 ---
 
-## 驗證安裝
+## Verifying the installation
 
-用 `verify_install.sh` 確認 skill 正確安裝並可被 Claude Code 載入：
+Use `verify_install.sh` to confirm the skill is installed correctly and can be loaded by Claude Code:
 
 ```sh
-# 驗證使用者層級安裝
+# Check the user-level install
 chmod +x ./verify_install.sh
 ./verify_install.sh
 
-# 驗證專案層級安裝
+# Check a project-level install
 ./verify_install.sh --project /path/to/your/project
 ```
 
-腳本會檢查：
+The script checks that:
 
-1. Skill 目錄是否存在
-2. `SKILL.md` 是否存在
-3. `threat_modeling_report_template.md` 是否存在
-4. `SKILL.md` 是否有合法的 YAML frontmatter（開頭 `---`、正確閉合）
-5. Frontmatter 是否包含必要的 `name` 與 `description` 欄位
-6. `name` 欄位是否等於 `threat-modeling`（必須與資料夾名一致）
-7. `SKILL.md` 是否有引用到範本檔
-8. 範本是否包含主要章節（STRIDE / DREAD / MITRE / 攻擊樹 / 資產識別 / 信任邊界）
+1. The skill directory exists
+2. `SKILL.md` exists
+3. `threat_modeling_report_template.md` exists
+4. `SKILL.md` has valid YAML frontmatter (starts with `---` and is closed)
+5. The frontmatter contains the required `name` and `description` fields
+6. `name` equals `threat-modeling` (it must match the folder name)
+7. `SKILL.md` references the template file
+8. The template contains the key sections (STRIDE / DREAD / MITRE / Attack Tree / Assets / Trust Boundaries)
 
-**成功範例**：
+**Successful run**:
 
 ```
 Verifying threat-modeling skill at:
@@ -130,142 +135,172 @@ Result: 10/10 checks passed
 All checks passed. The threat-modeling skill is ready to use.
 ```
 
-退出碼：`0` 全部通過、`1` 有檢查失敗、`2` 參數錯誤。可直接用於 CI。
+Exit codes: `0` all checks passed, `1` at least one check failed, `2` argument error. Suitable for CI.
 
-### 進一步在 Claude Code 中驗證
+### Checking inside Claude Code
 
-1. 開啟 Claude Code 並進入**任何**專案
-2. 輸入：
-
-   ```
-   請列出目前可用的 skills
-   ```
-
-   Claude 應該會列出 `threat-modeling`（若為使用者層級安裝，則在所有專案都看得到；專案層級則只在該專案看得到）。
-
-3. 試跑一個 smoke test（任何已存在的專案都行）：
+1. Open Claude Code in **any** project
+2. Ask:
 
    ```
-   use the threat-modeling skill to generate a threat modeling report for this project
+   List the skills that are currently available
    ```
 
-   Claude 會讀取 `SKILL.md` 的指引並開始分析專案。
+   Claude should list `threat-modeling` (in every project for a user-level install; only in that project for a project-level install).
+
+3. Run a smoke test (any existing project works):
+
+   ```
+   Use the threat-modeling skill to generate a threat modeling report for this project
+   ```
+
+   Claude reads the instructions in `SKILL.md` and starts analyzing the project.
 
 ---
 
-## 使用範例
+## Usage examples
 
-以下範例假設你已在某個目標專案中開啟 Claude Code，且 skill 已安裝（使用者層級或專案層級皆可）。
+These examples assume Claude Code is open in the target project and the skill is installed (user or project level).
 
-### 範例 1：從零產出完整威脅建模報告（Full 模式）
-
-```
-請用 threat-modeling skill 幫我產生這個專案的 Threat Modeling Report
-```
-
-Claude 會：
-
-1. 先檢查專案根目錄是否已有 `Threat-Modeling-Report.md`（若有會先詢問是否覆蓋）
-2. 讀取 README、package manifest、Dockerfile、CI 設定等，理解專案技術棧
-3. 平行派發 Explore subagent 盤點：HTTP 入口、DB 查詢、認證邏輯、外部 API 呼叫、依賴清單
-4. 依據實際程式碼證據執行 STRIDE 分析（每條威脅都會引用具體檔案路徑 + 行號）
-5. 以 DREAD 評分每個威脅
-6. 繪製 Mermaid 架構圖與 Attack Tree
-7. 對應到 MITRE ATT&CK Technique
-8. 評估既有的安全控制（例如是否用了 helmet、bcrypt、csurf、prepared statement 等）
-9. 產出 `Threat-Modeling-Report.md` 到**專案根目錄**
-
-### 範例 2：分析近期變更（Patch 模式）
+### Example 1: Full threat modeling report from scratch (Full mode)
 
 ```
-請用 threat-modeling skill 分析最近 30 天的 code change，產生 patch report
+Use the threat-modeling skill to generate a Threat Modeling Report for this project
 ```
 
-或用絕對日期：
+Claude will:
+
+1. Check whether `Threat-Modeling-Report.md` already exists in the project root (and ask before overwriting it)
+2. Read the README, package manifests, Dockerfile, CI configuration, etc. to understand the tech stack
+3. Inventory HTTP entry points, database queries, authentication logic, external API calls and dependencies (dispatching Explore subagents in parallel for medium and large projects)
+4. Run a STRIDE analysis grounded in the actual code (every threat cites a concrete file path and line number)
+5. Score each threat with DREAD
+6. Draw a Mermaid architecture diagram and attack trees
+7. Map threats to MITRE ATT&CK techniques
+8. Assess existing security controls (e.g. helmet, bcrypt, csurf, prepared statements)
+9. Write `Threat-Modeling-Report.md` to the **project root**
+
+### Example 2: Analyze recent changes (Patch mode)
 
 ```
-請用 threat-modeling skill 分析 2026-01-01 到 2026-04-14 的變更
+Use the threat-modeling skill to analyze code changes from the last 30 days and produce a patch report
 ```
 
-或用 git revision range：
+Or with absolute dates:
 
 ```
-請用 threat-modeling skill 分析 v1.2..v1.3 之間的 code change
+Use the threat-modeling skill to analyze changes from 2026-01-01 to 2026-04-14
 ```
 
-Claude 會：
-
-1. 轉換時間區間為 git 參數（相對日期會換算為絕對日期並在報告中記錄）
-2. 執行 `git log --name-status`、`--shortstat`、`-p` 蒐集變更
-3. 聚焦**六類有安全意義的變更**：
-   - 新增的攻擊面（新路由 / 新端點 / 新輸入管道 / 新檔案上傳 / 新反序列化點）
-   - 依賴變動（新增、升級、移除的套件）
-   - 認證 / 授權 / 加密邏輯變動
-   - 資料流變動（新的 DB 查詢 / 外部 API 呼叫）
-   - 設定變動（Dockerfile、CI、CORS、CSP、security header）
-   - **被移除的安全控制**（特別重要）
-4. 產出 `Threat-Modeling-Report-patch.md` 到專案根目錄，每條 finding 都會引用 commit hash + 檔案路徑
-5. 若專案根目錄已存在 `Threat-Modeling-Report.md`，主動詢問是否合併
-
-### 範例 3：合併 Patch 回主報告
-
-接續範例 2，若同意合併：
+Or with a git revision range:
 
 ```
-是，請合併到主報告
+Use the threat-modeling skill to analyze the code changes between v1.2..v1.3
 ```
 
-Claude 會：
+Claude will:
 
-- 遞增主報告版本號（如 v1.0 → v1.1）
-- 更新封面日期與修訂歷史
-- 將 patch 中的新威脅延續既有 THR 編號寫入第 9 節
-- 更新第 1.2 節風險概況總覽與第 10 節風險矩陣
-- 更新第 13 節既有控制（如 patch 修復了某個威脅會標記為 ✅ 已緩解）
-- 更新第 14 節緩解措施與第 18.2 節後續行動追蹤表
-- **不會重新編號既有 THR，不會刪除既有章節內容**
-- Patch 檔案不會被刪除，作為變更歷史保留
+1. Convert the time range into git arguments (relative dates are resolved to absolute dates and recorded in the report)
+2. Collect changes with `git log --name-status`, `--shortstat` and `-p`
+3. Focus on **six kinds of security-relevant change**:
+   - New attack surface (new routes / endpoints / input channels / file uploads / deserialization points)
+   - Dependency changes (added, upgraded or removed packages)
+   - Changes to authentication, authorization or cryptography logic
+   - Data flow changes (new database queries / external API calls)
+   - Configuration changes (Dockerfile, CI, CORS, CSP, security headers)
+   - **Removed security controls** (especially important)
+4. Write `Threat-Modeling-Report-patch.md` to the project root, with every finding citing a commit hash and file path
+5. Ask whether to merge it if `Threat-Modeling-Report.md` already exists in the project root
+
+### Example 3: Merge the patch into the main report
+
+Continuing from Example 2, if you agree to merge:
+
+```
+Yes, merge it into the main report
+```
+
+Claude will:
+
+- Bump the main report version (e.g. v1.0 → v1.1)
+- Update the cover date and revision history
+- Add new threats to Section 9, continuing the existing THR numbering
+- Update the risk overview in Section 1.2, the risk matrix in Section 10 and the MITRE ATT&CK mapping in Section 12
+- Update existing controls in Section 13 (a threat fixed by the patch is marked ✅ mitigated)
+- Update mitigations in Section 14 and the follow-up action table in Section 18.2
+- Write all new content in the main report's language
+- **Never renumber existing THR entries or delete existing sections**
+- Keep the patch file as change history
+
+### Example 4: Choose the report language
+
+```
+Use the threat-modeling skill to generate a Threat Modeling Report for this project, written in Japanese
+```
 
 ---
 
-## 移除 Skill
+## Report language
+
+The report is written in the language you ask in. The template itself is in Traditional Chinese; Claude translates it when generating other languages, so section wording can vary slightly between runs.
+
+The language is decided in this order, first match wins:
+
+1. A language you explicitly request (e.g. "write the report in English")
+2. Patch mode: if `Threat-Modeling-Report.md` already exists in the project root, the patch report reuses its language so the main report and patches don't mix languages
+3. A response language set in Claude Code's language setting or in `CLAUDE.md`
+4. The language of your request
+5. Traditional Chinese, if none of the above can be determined
+
+Merging is the exception: content merged into the main report is always written in the main report's language, even if you asked for a different language in rule 1.
+
+Whatever the language, these stay unchanged: IDs such as `THR-001` and `CTRL-01`, STRIDE / DREAD letters, MITRE ATT&CK technique IDs, file paths, code snippets, commit hashes, and output file names.
+
+---
+
+## Uninstalling
 
 ```sh
-# 使用者層級
+# User level
 rm -rf ~/.claude/skills/threat-modeling
 
-# 專案層級
+# Project level
 rm -rf /path/to/project/.claude/skills/threat-modeling
 ```
 
 ---
 
-## 安全紅線
+## Safety principles
 
-此 skill 在分析程式碼時會遵守以下原則（寫在 `SKILL.md` 裡，Claude 執行時會遵循）：
+The skill follows these rules while analyzing code (they are written in `SKILL.md`):
 
-- **忠於證據**：每條威脅都要可追溯到實際檔案路徑或 commit。不編造 CVE 編號、不幻想不存在的元件。
-- **敏感資料處理**：分析時若看到真實的密碼、API key、私鑰，**絕不寫入報告**；只描述類型與位置，並在結論中提醒使用者立即輪換。
-- **不破壞性操作**：整個 skill 全程只讀專案檔案與 git 歷史，只寫入 `Threat-Modeling-Report.md` 或 `Threat-Modeling-Report-patch.md`（合併時會用 Edit 逐段修改原報告，不會整份覆蓋）。
+- **Evidence only**: every threat must trace back to a real file path or commit. No invented CVE numbers, no imagined components.
+- **Secrets handling**: real passwords, API keys or private keys found during analysis are **never written into the report**. Only their type and location are described, and the conclusion reminds you to rotate them immediately.
+- **Non-destructive**: the skill only reads project files and git history, and only writes `Threat-Modeling-Report.md` or `Threat-Modeling-Report-patch.md` (merging edits the existing report section by section instead of overwriting it).
 
 ---
 
-## 疑難排解
+## Troubleshooting
 
-**Q: 安裝後 Claude Code 找不到 skill**
-- 確認 `verify_install.sh` 全綠
-- 確認 Claude Code 是**在安裝之後**啟動的。Skill 清單通常在 session 啟動時載入，重開 Claude Code 試試。
-- 若是專案層級安裝，確認你現在的工作目錄是那個專案。
+**Q: Claude Code can't find the skill after installing**
+- Make sure `verify_install.sh` passes
+- Make sure Claude Code was started **after** the install. The skill list is usually loaded when a session starts, so restart Claude Code.
+- For a project-level install, make sure your working directory is that project.
 
 **Q: `install.sh: Permission denied`**
-- 執行 `chmod +x install.sh verify_install.sh`
+- Run `chmod +x install.sh verify_install.sh`
 
-**Q: Windows CMD 下跑不起來**
-- 請改用 Git Bash 或 WSL
+**Q: The scripts don't run in Windows CMD**
+- Use Git Bash or WSL instead
 
-**Q: 驗證時 `[FAIL] SKILL.md frontmatter has name field`**
-- 可能是檔案編碼問題（BOM）或 `SKILL.md` 被手動編輯壞掉
-- 用 `./install.sh --force` 重裝即可復原
+**Q: Verification shows `[FAIL] SKILL.md frontmatter has name field`**
+- The file may have an encoding issue (BOM) or `SKILL.md` was broken by a manual edit
+- Run `./install.sh --force` to restore it
 
-**Q: Patch 模式產出的報告幾乎是空的**
-- 代表該區間內沒有安全相關的程式碼變更。這是正常結果，skill 刻意不硬湊內容。
+**Q: The patch report is almost empty**
+- There were no security-relevant code changes in that range. This is expected: the skill deliberately doesn't pad the report.
+
+**Q: The report isn't in the language I expected**
+- If `Threat-Modeling-Report.md` already exists in the project root, Patch mode and merging reuse its language
+- A response language set in `CLAUDE.md` or Claude Code's language setting takes priority over the language of your request
+- Name the language in your request to override them, e.g. "write the report in English". Content merged into an existing main report still follows the main report's language.

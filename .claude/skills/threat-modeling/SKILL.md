@@ -17,10 +17,35 @@ description: Generate a professional Threat Modeling Report by analyzing the pro
 
 | 使用者意圖 | 模式 | 輸出檔案 |
 |---|---|---|
-| 「從頭產生威脅建模報告」「分析整個專案的安全性」「產 Threat Modeling Report」 | **Full 模式** | `Threat-Modeling-Report.md` |
-| 「分析最近 X 天的變更」「從 YYYY-MM-DD 到 YYYY-MM-DD 的 patch」「產 patch report」 | **Patch 模式** | `Threat-Modeling-Report-patch.md` |
+| 「從頭產生威脅建模報告」「分析整個專案的安全性」「產 Threat Modeling Report」「generate a threat model for this project」 | **Full 模式** | `Threat-Modeling-Report.md` |
+| 「分析最近 X 天的變更」「從 YYYY-MM-DD 到 YYYY-MM-DD 的 patch」「產 patch report」「analyze changes in the last 30 days」 | **Patch 模式** | `Threat-Modeling-Report-patch.md` |
+
+使用者可能用任何語言提問，依意圖判斷模式，不要只比對上表的字面關鍵字。
 
 兩個模式的輸出檔案一律寫到**專案根目錄**，不是 skill 目錄。
+
+---
+
+## 報告語言
+
+進入 skill 時先決定報告語言，Full / Patch 全程一致。依以下順序判斷，前面的優先：
+
+1. **使用者本次明確指定的語言**（如「write the report in English」「請用日文撰寫」）。
+2. **Patch 模式**：若專案根目錄已有 `Threat-Modeling-Report.md`，patch 報告沿用該報告的語言，避免主報告與 patch 語言不一致。
+3. **使用者設定的回應語言**：Claude Code 的語言設定或 CLAUDE.md 中指定的回應語言。
+4. **使用者提問的語言**：以句子主體判斷，不以夾雜的技術名詞判斷（例如「幫我產生 threat model」是中文）。
+5. 以上都無法判斷時，使用繁體中文（範本語言）。
+
+**合併例外**：合併進主報告的內容一律使用主報告的語言，不適用上述順序（包括第 1 條）。若 patch 報告用了其他語言，寫入主報告前先翻譯。
+
+範本以繁體中文撰寫。報告語言不是繁體中文時：
+
+- **翻譯**：章節標題、表格欄位名稱、固定用語，以及本檔寫死的中文預設值（如機密等級「內部」→ `Internal`、`{{待填}}` → `TBD`）。章節編號、結構與順序不變。
+- **不翻譯**：威脅與控制等編號（`THR-001`、`CTRL-01`、`DF-01`、`TB-01`…）、STRIDE / DREAD 代號、表格中的 MITRE ATT&CK Tactic / Technique ID 與官方名稱（章節標題仍要翻譯）、檔案路徑、程式碼片段、commit hash，以及輸出檔名（Patch 模式靠檔名偵測主報告，檔名不隨語言改變）。
+- 範本中的 `> 提示：...` 說明行與「⚠️ 使用說明（給 Claude）」區塊直接刪除，不要翻譯後保留。
+- **重建目錄連結**：標題翻譯後錨點會改變，目錄中每個連結都要改成指向翻譯後的標題（GitHub 規則：轉小寫、移除標點符號、空白換成 `-`）。
+- Mermaid 圖的節點文字可以翻譯，但維持以雙引號包住標籤的寫法，避免語法錯誤。
+- 給使用者的回報與詢問（如 Full 模式步驟 4 的結尾回報、Patch 模式步驟 5 的合併詢問）使用目前與使用者對話的語言，可以與報告語言不同。
 
 ---
 
@@ -135,7 +160,7 @@ git log --since="<since>" --until="<until>" -p -- <可選：敏感路徑>
 
 ### 步驟 4：撰寫 Patch 報告
 
-輸出 `Threat-Modeling-Report-patch.md`（寫到專案根目錄），結構如下：
+輸出 `Threat-Modeling-Report-patch.md`（寫到專案根目錄），結構如下（骨架以繁體中文示意；標題、欄位名稱，以及「（新增）」這類標記，都依「報告語言」章節整個翻譯，不要中外文並列）：
 
 ```markdown
 # Threat Modeling Report — Patch
@@ -196,7 +221,7 @@ git log --since="<since>" --until="<until>" -p -- <可選：敏感路徑>
 
 **完成 patch 報告後**，檢查 `Threat-Modeling-Report.md` 是否存在於專案根目錄：
 
-- **若存在**：必須主動詢問使用者：
+- **若存在**：必須主動以目前與使用者對話的語言詢問，例如：
   > 已產生 `Threat-Modeling-Report-patch.md`。偵測到專案根目錄已存在 `Threat-Modeling-Report.md`，是否要將此 patch 的新內容合併到主報告？（是/否）
 
   若使用者同意合併，執行步驟 6；否則結束。
@@ -218,6 +243,7 @@ git log --since="<since>" --until="<until>" -p -- <可選：敏感路徑>
 10. **保留 patch 檔案**不刪除，作為變更歷史。
 
 **合併注意事項**：
+- 新增或更新的內容使用主報告的語言；若 patch 報告用了其他語言，寫入主報告前先翻譯。
 - 不要改動與本次 patch 無關的章節內容。
 - 不要重新編號既有 THR — 只在末尾新增。
 - 若 patch 顯示某既有威脅已被修復（例如 THR-005 SQL Injection 對應的拼接字串被改成 prepared statement），不要從表格刪除，而是更新「實作後風險」欄或加上 ✅ 已緩解 標註，並在修訂歷史中說明。
@@ -230,5 +256,5 @@ git log --since="<since>" --until="<until>" -p -- <可選：敏感路徑>
 - **忠於證據**：每條威脅都要可追溯到實際的程式碼位置或 commit，不編造 CVE 編號、不幻想不存在的元件。
 - **敏感資料處理**：分析時若看到實際的密碼、API key、私鑰，**絕對不要**寫進報告；只描述類型與位置，並在結論中提醒使用者立刻輪換。
 - **TodoWrite / TaskCreate**：Full 模式步驟多，建議建立 task list 追蹤：蒐集資訊 → 架構分析 → STRIDE 填寫 → 控制評估 → 緩解 → 輸出。Patch 模式任務較少可省略。
-- **語言**：報告輸出語言沿用範本（繁體中文）。若使用者明確要求英文或其他語言，以使用者指定為準。
+- **語言**：依「報告語言」章節決定與翻譯。
 - **不產生周邊檔案**：除了 `Threat-Modeling-Report.md` 或 `Threat-Modeling-Report-patch.md` 外，不要額外建立 summary、README 或其他 markdown，除非使用者明確要求。
